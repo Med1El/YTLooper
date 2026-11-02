@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YT Looper</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0f0f0f;
+      --surface:  #1a1a1a;
+      --border:   #2e2e2e;
+      --accent:   #ff4444;
+      --accent2:  #4488ff;
+      --text:     #e8e8e8;
+      --muted:    #888;
+      --radius:   8px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 40px;
+      gap: 20px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--accent);
+    }
+    h1 span { color: var(--text); }
+
+    /* ── URL bar ── */
+    .url-row {
+      display: flex;
+      width: 100%;
+      max-width: 800px;
+      gap: 8px;
+    }
+    .url-row input {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .url-row input:focus { border-color: var(--accent2); }
+    .url-row button {
+      padding: 10px 20px;
+      border-radius: var(--radius);
+      border: none;
+      background: var(--accent2);
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    .url-row button:hover { opacity: .85; }
+
+    /* ── Player ── */
+    #player-wrap {
+      width: 100%;
+      max-width: 800px;
+      aspect-ratio: 16/9;
+      background: #000;
+      border-radius: var(--radius);
+      overflow: hidden;
+      position: relative;
+    }
+    #player-wrap iframe,
+    #player-wrap > div { width: 100% !important; height: 100% !important; }
+
+    /* ── Progress bar ── */
+    .progress-section {
+      width: 100%;
+      max-width: 800px;
+    }
+    .progress-track {
+      position: relative;
+      height: 36px;
+      cursor: pointer;
+      user-select: none;
+    }
+    /* track background */
+    .progress-track .track-bg {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      left: 0; right: 0;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+    }
+    /* played fill */
+    .progress-track .track-played {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      left: 0;
+      height: 6px;
+      background: var(--muted);
+      border-radius: 3px;
+      pointer-events: none;
+      width: 0%;
+    }
+    /* loop region highlight */
+    .progress-track .loop-region {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 6px;
+      background: rgba(68,136,255,0.45);
+      pointer-events: none;
+    }
+    /* loop A / B handles */
+    .handle {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 14px;
+      height: 22px;
+      border-radius: 4px;
+      cursor: ew-resize;
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .handle-a { background: var(--accent); }
+    .handle-b { background: var(--accent2); }
+    /* playhead */
+    .playhead {
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 2px;
+      background: #fff;
+      pointer-events: none;
+      z-index: 3;
+      transform: translateX(-50%);
+    }
+
+    /* ── Controls ── */
+    .controls {
+      width: 100%;
+      max-width: 800px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: flex-end;
+    }
+
+    .time-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .time-group label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+    }
+    .time-group .time-input-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .time-input-row input[type="number"] {
+      width: 80px;
+      padding: 7px 10px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color .2s;
+      -moz-appearance: textfield;
+    }
+    .time-input-row input[type="number"]::-webkit-inner-spin-button,
+    .time-input-row input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .time-input-row input[type="number"]:focus { border-color: var(--accent2); }
+    .time-input-row .set-btn {
+      padding: 7px 11px;
+      border-radius: var(--radius);
+      border: none;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    .set-btn-a { background: var(--accent);  color: #fff; }
+    .set-btn-b { background: var(--accent2); color: #fff; }
+    .set-btn:hover { opacity: .8; }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .ctrl-btn {
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ctrl-btn:hover { background: #262626; border-color: #444; }
+    .ctrl-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .ctrl-btn.active-b { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+
+    .spacer { flex: 1; }
+
+    /* ── Status / time display ── */
+    .status-row {
+      width: 100%;
+      max-width: 800px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    #time-display { font-variant-numeric: tabular-nums; font-size: 0.9rem; color: var(--text); }
+    #loop-status  { }
+
+    /* ── Speed ── */
+    .speed-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .speed-group label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+    }
+    .speed-group select {
+      padding: 7px 10px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* ── Keyboard hint ── */
+    .hint {
+      color: var(--muted);
+      font-size: 0.76rem;
+      max-width: 800px;
+      width: 100%;
+      line-height: 1.8;
+    }
+    .hint kbd {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 4px;
+      border: 1px solid #444;
+      background: #222;
+      font-size: 0.74rem;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>YT <span>Looper</span></h1>
+
+  <!-- URL input -->
+  <div class="url-row">
+    <input id="yt-url" type="text" placeholder="Paste a YouTube URL or video ID…" />
+    <button id="load-btn">Load</button>
+  </div>
+
+  <!-- YouTube iframe embed target -->
+  <div id="player-wrap">
+    <div id="player"></div>
+  </div>
+
+  <!-- Timeline / progress bar -->
+  <div class="progress-section">
+    <div class="progress-track" id="progress-track">
+      <div class="track-bg"></div>
+      <div class="track-played" id="track-played"></div>
+      <div class="loop-region"  id="loop-region"></div>
+      <div class="handle handle-a" id="handle-a" title="Loop start (A)">A</div>
+      <div class="handle handle-b" id="handle-b" title="Loop end (B)">B</div>
+      <div class="playhead" id="playhead"></div>
+    </div>
+  </div>
+
+  <!-- Time inputs + transport buttons -->
+  <div class="controls">
+
+    <div class="time-group">
+      <label>Loop In (A)</label>
+      <div class="time-input-row">
+        <input type="number" id="in-time"  min="0" step="0.1" value="0" />
+        <button class="set-btn set-btn-a" id="set-a">Set A</button>
+      </div>
+    </div>
+
+    <div class="time-group">
+      <label>Loop Out (B)</label>
+      <div class="time-input-row">
+        <input type="number" id="out-time" min="0" step="0.1" value="10" />
+        <button class="set-btn set-btn-b" id="set-b">Set B</button>
+      </div>
+    </div>
+
+    <div class="speed-group">
+      <label>Speed</label>
+      <select id="speed-select">
+        <option value="0.25">0.25×</option>
+        <option value="0.5">0.5×</option>
+        <option value="0.75">0.75×</option>
+        <option value="1" selected>1×</option>
+        <option value="1.25">1.25×</option>
+        <option value="1.5">1.5×</option>
+        <option value="2">2×</option>
+      </select>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="btn-group">
+      <button class="ctrl-btn" id="play-pause-btn">▶ Play</button>
+      <button class="ctrl-btn active" id="loop-toggle">↺ Loop ON</button>
+      <button class="ctrl-btn" id="jump-a-btn">⏮ Jump A</button>
+    </div>
+  </div>
+
+  <!-- Status bar -->
+  <div class="status-row">
+    <span id="time-display">0.0 s</span>
+    <span id="loop-status">Loop: 0.0 s → 10.0 s &nbsp;|&nbsp; Δ 10.0 s</span>
+  </div>
+
+  <!-- Keyboard shortcuts hint -->
+  <div class="hint">
+    <kbd>Space</kbd> play/pause &nbsp;
+    <kbd>A</kbd> set loop-in to current time &nbsp;
+    <kbd>B</kbd> set loop-out to current time &nbsp;
+    <kbd>L</kbd> toggle loop &nbsp;
+    <kbd>J</kbd> jump to loop-in &nbsp;
+    <kbd>←</kbd> / <kbd>→</kbd> seek ±0.1 s &nbsp;
+    <kbd>Shift+←/→</kbd> seek ±1 s
+  </div>
+
+<script>
+/* ─────────────────────────────────────────────
+   YouTube IFrame API bootstrap
+───────────────────────────────────────────── */
+var tag = document.createElement('script');
+tag.src = 'https://www.youtube.com/iframe_api';
+document.head.appendChild(tag);
+
+let player = null;
+let duration = 0;
+let loopActive = true;
+let loopIn  = 0;
+let loopOut = 10;
+let polling = null;
+let isDragging = false;
+let dragTarget = null; // 'a' | 'b' | 'seek'
+
+/* ─────────────────────────────────────────────
+   Utility helpers
+───────────────────────────────────────────── */
+function fmt(s) {
+  s = parseFloat(s);
+  if (isNaN(s)) return '0.0';
+  const sign = s < 0 ? '-' : '';
+  s = Math.abs(s);
+  const m = Math.floor(s / 60);
+  const sec = (s - m * 60).toFixed(1);
+  return m > 0 ? `${sign}${m}:${sec.padStart(4,'0')}` : `${sign}${sec}`;
+}
+
+function extractVideoId(raw) {
+  raw = raw.trim();
+  // already an ID (11 chars, no slashes)
+  if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) return raw;
+  try {
+    const url = new URL(raw.includes('://') ? raw : 'https://' + raw);
+    if (url.hostname.includes('youtu.be')) return url.pathname.slice(1).split('?')[0];
+    return url.searchParams.get('v') || null;
+  } catch { return null; }
+}
+
+/* ─────────────────────────────────────────────
+   IFrame API ready callback
+───────────────────────────────────────────── */
+window.onYouTubeIframeAPIReady = function() {
+  player = new YT.Player('player', {
+    height: '100%',
+    width:  '100%',
+    videoId: '',
+    playerVars: {
+      autoplay: 0,
+      controls: 0,       // hide native controls — we build our own
+      rel: 0,
+      modestbranding: 1,
+      iv_load_policy: 3,
+      fs: 0,
+      disablekb: 1,
+    },
+    events: {
+      onReady:       onPlayerReady,
+      onStateChange: onStateChange,
+    }
+  });
+};
+
+function onPlayerReady() {
+  startPolling();
+}
+
+function onStateChange(e) {
+  const state = e.data;
+  // YT.PlayerState: -1 UNSTARTED, 0 ENDED, 1 PLAYING, 2 PAUSED, 3 BUFFERING, 5 CUED
+  if (state === YT.PlayerState.PLAYING) {
+    duration = player.getDuration() || duration;
+    playPauseBtn.textContent = '⏸ Pause';
+  } else {
+    playPauseBtn.textContent = '▶ Play';
+  }
+  if (state === YT.PlayerState.ENDED) {
+    if (loopActive) seekTo(loopIn);
+  }
+}
+
+/* ─────────────────────────────────────────────
+   Polling loop – runs every ~100 ms
+───────────────────────────────────────────── */
+function startPolling() {
+  if (polling) clearInterval(polling);
+  polling = setInterval(tick, 100);
+}
+
+function tick() {
+  if (!player || typeof player.getCurrentTime !== 'function') return;
+  const t = player.getCurrentTime();
+  duration = player.getDuration() || duration;
+  updateProgressUI(t);
+
+  if (loopActive && player.getPlayerState() === YT.PlayerState.PLAYING) {
+    if (t >= loopOut) {
+      seekTo(loopIn);
+    }
+  }
+}
+
+function seekTo(t) {
+  if (!player) return;
+  t = Math.max(0, Math.min(t, duration || t));
+  player.seekTo(t, true);
+}
+
+/* ─────────────────────────────────────────────
+   Progress bar UI updates
+───────────────────────────────────────────── */
+const trackEl     = document.getElementById('progress-track');
+const playedEl    = document.getElementById('track-played');
+const loopRegion  = document.getElementById('loop-region');
+const handleA     = document.getElementById('handle-a');
+const handleB     = document.getElementById('handle-b');
+const playheadEl  = document.getElementById('playhead');
+const timeDisplay = document.getElementById('time-display');
+const loopStatus  = document.getElementById('loop-status');
+
+function updateProgressUI(t) {
+  if (!duration) return;
+  const pct = t / duration * 100;
+  playheadEl.style.left = pct + '%';
+  playedEl.style.width  = pct + '%';
+  timeDisplay.textContent = fmt(t) + ' s';
+
+  const aP = loopIn  / duration * 100;
+  const bP = loopOut / duration * 100;
+  handleA.style.left  = aP + '%';
+  handleB.style.left  = bP + '%';
+  loopRegion.style.left  = aP + '%';
+  loopRegion.style.width = (bP - aP) + '%';
+
+  loopStatus.textContent =
+    `Loop: ${fmt(loopIn)} s → ${fmt(loopOut)} s \u00a0|\u00a0 Δ ${fmt(loopOut - loopIn)} s`;
+}
+
+function syncHandlesFromInputs() {
+  const a = parseFloat(document.getElementById('in-time').value)  || 0;
+  const b = parseFloat(document.getElementById('out-time').value) || 0;
+  if (a >= b) return; // invalid
+  loopIn  = a;
+  loopOut = b;
+  updateProgressUI(player ? player.getCurrentTime() : 0);
+}
+
+/* ─────────────────────────────────────────────
+   Dragging handles and seeking on the track
+───────────────────────────────────────────── */
+function clientXToTime(clientX) {
+  const rect = trackEl.getBoundingClientRect();
+  const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  return ratio * (duration || 100);
+}
+
+function startDrag(target) {
+  isDragging = true;
+  dragTarget = target;
+  document.addEventListener('mousemove', onDragMove);
+  document.addEventListener('mouseup',   onDragEnd);
+  document.addEventListener('touchmove', onDragMove, { passive: false });
+  document.addEventListener('touchend',  onDragEnd);
+}
+
+function onDragMove(e) {
+  if (!isDragging) return;
+  e.preventDefault();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const t = clientXToTime(clientX);
+  applyDrag(t);
+}
+
+function applyDrag(t) {
+  if (dragTarget === 'a') {
+    loopIn = Math.max(0, Math.min(t, loopOut - 0.1));
+    document.getElementById('in-time').value = loopIn.toFixed(1);
+  } else if (dragTarget === 'b') {
+    loopOut = Math.max(loopIn + 0.1, Math.min(t, duration || 9999));
+    document.getElementById('out-time').value = loopOut.toFixed(1);
+  } else if (dragTarget === 'seek') {
+    seekTo(t);
+  }
+  updateProgressUI(player ? player.getCurrentTime() : 0);
+}
+
+function onDragEnd() {
+  isDragging = false;
+  dragTarget = null;
+  document.removeEventListener('mousemove', onDragMove);
+  document.removeEventListener('mouseup',   onDragEnd);
+  document.removeEventListener('touchmove', onDragMove);
+  document.removeEventListener('touchend',  onDragEnd);
+}
+
+// Attach drag start to handles
+handleA.addEventListener('mousedown',  e => { e.stopPropagation(); startDrag('a'); });
+handleA.addEventListener('touchstart', e => { e.stopPropagation(); startDrag('a'); }, { passive: true });
+handleB.addEventListener('mousedown',  e => { e.stopPropagation(); startDrag('b'); });
+handleB.addEventListener('touchstart', e => { e.stopPropagation(); startDrag('b'); }, { passive: true });
+
+// Click/drag on the track itself → seek
+trackEl.addEventListener('mousedown', e => {
+  const t = clientXToTime(e.clientX);
+  seekTo(t);
+  startDrag('seek');
+});
+trackEl.addEventListener('touchstart', e => {
+  const t = clientXToTime(e.touches[0].clientX);
+  seekTo(t);
+  startDrag('seek');
+}, { passive: true });
+
+/* ─────────────────────────────────────────────
+   Control buttons
+───────────────────────────────────────────── */
+const playPauseBtn = document.getElementById('play-pause-btn');
+const loopToggle   = document.getElementById('loop-toggle');
+const jumpABtn     = document.getElementById('jump-a-btn');
+
+playPauseBtn.addEventListener('click', () => {
+  if (!player) return;
+  const state = player.getPlayerState();
+  if (state === YT.PlayerState.PLAYING) {
+    player.pauseVideo();
+  } else {
+    player.playVideo();
+  }
+});
+
+loopToggle.addEventListener('click', () => {
+  loopActive = !loopActive;
+  loopToggle.textContent = loopActive ? '↺ Loop ON' : '↺ Loop OFF';
+  loopToggle.classList.toggle('active', loopActive);
+});
+
+jumpABtn.addEventListener('click', () => seekTo(loopIn));
+
+/* Set A / Set B buttons */
+document.getElementById('set-a').addEventListener('click', () => {
+  if (!player) return;
+  const t = parseFloat(player.getCurrentTime().toFixed(1));
+  loopIn = Math.min(t, loopOut - 0.1);
+  document.getElementById('in-time').value = loopIn.toFixed(1);
+  updateProgressUI(t);
+});
+
+document.getElementById('set-b').addEventListener('click', () => {
+  if (!player) return;
+  const t = parseFloat(player.getCurrentTime().toFixed(1));
+  loopOut = Math.max(t, loopIn + 0.1);
+  document.getElementById('out-time').value = loopOut.toFixed(1);
+  updateProgressUI(t);
+});
+
+/* Typing in number inputs */
+document.getElementById('in-time').addEventListener('change', syncHandlesFromInputs);
+document.getElementById('out-time').addEventListener('change', syncHandlesFromInputs);
+
+/* Speed */
+document.getElementById('speed-select').addEventListener('change', e => {
+  if (player && player.setPlaybackRate) player.setPlaybackRate(parseFloat(e.target.value));
+});
+
+/* ─────────────────────────────────────────────
+   Load video
+───────────────────────────────────────────── */
+document.getElementById('load-btn').addEventListener('click', loadVideo);
+document.getElementById('yt-url').addEventListener('keydown', e => {
+  if (e.key === 'Enter') loadVideo();
+});
+
+function loadVideo() {
+  const raw = document.getElementById('yt-url').value;
+  const vid = extractVideoId(raw);
+  if (!vid) { alert('Could not extract a YouTube video ID from that URL.'); return; }
+  if (!player || typeof player.loadVideoById !== 'function') {
+    alert('Player not ready yet — please wait a moment and try again.'); return;
+  }
+  player.loadVideoById({ videoId: vid, startSeconds: loopIn });
+  duration = 0; // reset until API gives us the real duration
+}
+
+/* ─────────────────────────────────────────────
+   Keyboard shortcuts
+───────────────────────────────────────────── */
+document.addEventListener('keydown', e => {
+  // ignore if user is typing in an input
+  if (['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)) return;
+
+  switch (e.key) {
+    case ' ':
+    case 'k':
+      e.preventDefault();
+      playPauseBtn.click();
+      break;
+    case 'a':
+    case 'A':
+      document.getElementById('set-a').click();
+      break;
+    case 'b':
+    case 'B':
+      document.getElementById('set-b').click();
+      break;
+    case 'l':
+    case 'L':
+      loopToggle.click();
+      break;
+    case 'j':
+    case 'J':
+      seekTo(loopIn);
+      break;
+    case 'ArrowLeft': {
+      e.preventDefault();
+      const delta = e.shiftKey ? 1 : 0.1;
+      if (player) seekTo(player.getCurrentTime() - delta);
+      break;
+    }
+    case 'ArrowRight': {
+      e.preventDefault();
+      const delta = e.shiftKey ? 1 : 0.1;
+      if (player) seekTo(player.getCurrentTime() + delta);
+      break;
+    }
+  }
+});
+</script>
+</body>
+</html>
