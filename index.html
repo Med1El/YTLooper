@@ -8,14 +8,14 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:       #0f0f0f;
-      --surface:  #1a1a1a;
-      --border:   #2e2e2e;
-      --accent:   #ff4444;
-      --accent2:  #4488ff;
-      --text:     #e8e8e8;
-      --muted:    #888;
-      --radius:   8px;
+      --bg:      #0f0f0f;
+      --surface: #1a1a1a;
+      --border:  #2e2e2e;
+      --accent:  #ff4444;
+      --accent2: #4488ff;
+      --text:    #e8e8e8;
+      --muted:   #888;
+      --radius:  8px;
     }
 
     body {
@@ -30,12 +30,7 @@
       gap: 20px;
     }
 
-    h1 {
-      font-size: 1.4rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      color: var(--accent);
-    }
+    h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: .04em; color: var(--accent); }
     h1 span { color: var(--text); }
 
     /* ── URL bar ── */
@@ -52,7 +47,7 @@
       border: 1px solid var(--border);
       background: var(--surface);
       color: var(--text);
-      font-size: 0.95rem;
+      font-size: .95rem;
       outline: none;
       transition: border-color .2s;
     }
@@ -63,14 +58,14 @@
       border: none;
       background: var(--accent2);
       color: #fff;
-      font-size: 0.95rem;
+      font-size: .95rem;
       font-weight: 600;
       cursor: pointer;
       transition: opacity .15s;
     }
     .url-row button:hover { opacity: .85; }
 
-    /* ── Player ── */
+    /* ── Video player wrapper ── */
     #player-wrap {
       width: 100%;
       max-width: 800px;
@@ -79,213 +74,205 @@
       border-radius: var(--radius);
       overflow: hidden;
       position: relative;
+      transition: height .3s, aspect-ratio .3s;
+    }
+    /* In audio mode the iframe is shrunken to 1×1 and hidden — audio keeps playing */
+    #player-wrap.audio-mode {
+      aspect-ratio: unset;
+      height: 1px;        /* non-zero so the iframe stays alive */
+      overflow: hidden;
+      pointer-events: none;
     }
     #player-wrap iframe,
     #player-wrap > div { width: 100% !important; height: 100% !important; }
 
-    /* ── Progress bar ── */
-    .progress-section {
+    /* ── Audio artwork panel (shown only in audio mode) ── */
+    #audio-panel {
+      display: none;
       width: 100%;
       max-width: 800px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 22px;
+      align-items: center;
+      gap: 20px;
     }
+    #audio-panel.visible { display: flex; }
+
+    #audio-thumb {
+      width: 80px;
+      height: 80px;
+      border-radius: 6px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: #111;
+    }
+    #audio-thumb-ph {
+      width: 80px;
+      height: 80px;
+      border-radius: 6px;
+      background: #222;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+    }
+
+    .audio-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    #audio-title {
+      font-size: 1rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Animated waveform bars */
+    .waveform {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 28px;
+    }
+    .waveform .bar {
+      width: 3px;
+      border-radius: 2px;
+      background: var(--accent2);
+      opacity: .55;
+      transform-origin: bottom;
+    }
+    .waveform.playing .bar { animation: wave .8s ease-in-out infinite alternate; opacity: 1; }
+    /* staggered heights / delays */
+    .waveform .bar:nth-child(1)  { height:40%; animation-delay:.00s }
+    .waveform .bar:nth-child(2)  { height:70%; animation-delay:.10s }
+    .waveform .bar:nth-child(3)  { height:55%; animation-delay:.05s }
+    .waveform .bar:nth-child(4)  { height:85%; animation-delay:.20s }
+    .waveform .bar:nth-child(5)  { height:45%; animation-delay:.15s }
+    .waveform .bar:nth-child(6)  { height:90%; animation-delay:.25s }
+    .waveform .bar:nth-child(7)  { height:60%; animation-delay:.08s }
+    .waveform .bar:nth-child(8)  { height:75%; animation-delay:.18s }
+    .waveform .bar:nth-child(9)  { height:50%; animation-delay:.30s }
+    .waveform .bar:nth-child(10) { height:80%; animation-delay:.12s }
+    .waveform .bar:nth-child(11) { height:35%; animation-delay:.22s }
+    .waveform .bar:nth-child(12) { height:65%; animation-delay:.07s }
+    .waveform .bar:nth-child(13) { height:95%; animation-delay:.28s }
+    .waveform .bar:nth-child(14) { height:50%; animation-delay:.16s }
+    .waveform .bar:nth-child(15) { height:72%; animation-delay:.04s }
+    @keyframes wave {
+      from { transform: scaleY(.35); }
+      to   { transform: scaleY(1.0); }
+    }
+
+    /* ── Progress bar ── */
+    .progress-section { width: 100%; max-width: 800px; }
     .progress-track {
       position: relative;
       height: 36px;
       cursor: pointer;
       user-select: none;
     }
-    /* track background */
     .progress-track .track-bg {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      left: 0; right: 0;
-      height: 6px;
-      background: var(--border);
-      border-radius: 3px;
+      position: absolute; top: 50%; transform: translateY(-50%);
+      left: 0; right: 0; height: 6px;
+      background: var(--border); border-radius: 3px;
     }
-    /* played fill */
     .progress-track .track-played {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      left: 0;
-      height: 6px;
-      background: var(--muted);
-      border-radius: 3px;
-      pointer-events: none;
-      width: 0%;
+      position: absolute; top: 50%; transform: translateY(-50%);
+      left: 0; height: 6px; width: 0%;
+      background: var(--muted); border-radius: 3px; pointer-events: none;
     }
-    /* loop region highlight */
     .progress-track .loop-region {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      height: 6px;
-      background: rgba(68,136,255,0.45);
-      pointer-events: none;
+      position: absolute; top: 50%; transform: translateY(-50%);
+      height: 6px; background: rgba(68,136,255,.45); pointer-events: none;
     }
-    /* loop A / B handles */
     .handle {
-      position: absolute;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      width: 14px;
-      height: 22px;
-      border-radius: 4px;
-      cursor: ew-resize;
-      z-index: 4;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 8px;
-      font-weight: 700;
-      color: #fff;
+      position: absolute; top: 50%; transform: translate(-50%,-50%);
+      width: 14px; height: 22px; border-radius: 4px;
+      cursor: ew-resize; z-index: 4;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 8px; font-weight: 700; color: #fff;
     }
     .handle-a { background: var(--accent); }
     .handle-b { background: var(--accent2); }
-    /* playhead */
     .playhead {
-      position: absolute;
-      top: 0; bottom: 0;
-      width: 2px;
-      background: #fff;
-      pointer-events: none;
-      z-index: 3;
+      position: absolute; top: 0; bottom: 0; width: 2px;
+      background: #fff; pointer-events: none; z-index: 3;
       transform: translateX(-50%);
     }
 
     /* ── Controls ── */
     .controls {
-      width: 100%;
-      max-width: 800px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 14px;
-      align-items: flex-end;
+      width: 100%; max-width: 800px;
+      display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end;
     }
 
-    .time-group {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
+    .time-group { display: flex; flex-direction: column; gap: 4px; }
     .time-group label {
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      color: var(--muted);
+      font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
     }
-    .time-group .time-input-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
+    .time-input-row { display: flex; align-items: center; gap: 6px; }
     .time-input-row input[type="number"] {
-      width: 80px;
-      padding: 7px 10px;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--text);
-      font-size: 0.95rem;
-      outline: none;
-      transition: border-color .2s;
-      -moz-appearance: textfield;
+      width: 80px; padding: 7px 10px;
+      border-radius: var(--radius); border: 1px solid var(--border);
+      background: var(--surface); color: var(--text); font-size: .95rem;
+      outline: none; transition: border-color .2s; -moz-appearance: textfield;
     }
     .time-input-row input[type="number"]::-webkit-inner-spin-button,
     .time-input-row input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
     .time-input-row input[type="number"]:focus { border-color: var(--accent2); }
     .time-input-row .set-btn {
-      padding: 7px 11px;
-      border-radius: var(--radius);
-      border: none;
-      font-size: 0.78rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity .15s;
+      padding: 7px 11px; border-radius: var(--radius); border: none;
+      font-size: .78rem; font-weight: 600; cursor: pointer; transition: opacity .15s;
     }
     .set-btn-a { background: var(--accent);  color: #fff; }
     .set-btn-b { background: var(--accent2); color: #fff; }
     .set-btn:hover { opacity: .8; }
 
-    .btn-group {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
+    .speed-group { display: flex; flex-direction: column; gap: 4px; }
+    .speed-group label {
+      font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+    }
+    .speed-group select {
+      padding: 7px 10px; border-radius: var(--radius); border: 1px solid var(--border);
+      background: var(--surface); color: var(--text); font-size: .9rem;
+      outline: none; cursor: pointer;
     }
 
+    .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
     .ctrl-btn {
-      padding: 9px 16px;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--text);
-      font-size: 0.88rem;
-      cursor: pointer;
+      padding: 9px 16px; border-radius: var(--radius);
+      border: 1px solid var(--border); background: var(--surface); color: var(--text);
+      font-size: .88rem; cursor: pointer;
       transition: background .15s, border-color .15s;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      display: flex; align-items: center; gap: 6px;
     }
     .ctrl-btn:hover { background: #262626; border-color: #444; }
-    .ctrl-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-    .ctrl-btn.active-b { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+    .ctrl-btn.active  { background: var(--accent);  border-color: var(--accent);  color: #fff; }
+    .ctrl-btn.active2 { background: var(--accent2); border-color: var(--accent2); color: #fff; }
 
     .spacer { flex: 1; }
 
-    /* ── Status / time display ── */
+    /* ── Status row ── */
     .status-row {
-      width: 100%;
-      max-width: 800px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.82rem;
-      color: var(--muted);
+      width: 100%; max-width: 800px;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: .82rem; color: var(--muted);
     }
-    #time-display { font-variant-numeric: tabular-nums; font-size: 0.9rem; color: var(--text); }
-    #loop-status  { }
-
-    /* ── Speed ── */
-    .speed-group {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .speed-group label {
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      color: var(--muted);
-    }
-    .speed-group select {
-      padding: 7px 10px;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--text);
-      font-size: 0.9rem;
-      outline: none;
-      cursor: pointer;
-    }
+    #time-display { font-variant-numeric: tabular-nums; font-size: .9rem; color: var(--text); }
 
     /* ── Keyboard hint ── */
-    .hint {
-      color: var(--muted);
-      font-size: 0.76rem;
-      max-width: 800px;
-      width: 100%;
-      line-height: 1.8;
-    }
+    .hint { color: var(--muted); font-size: .76rem; max-width: 800px; width: 100%; line-height: 1.8; }
     .hint kbd {
-      display: inline-block;
-      padding: 1px 6px;
-      border-radius: 4px;
-      border: 1px solid #444;
-      background: #222;
-      font-size: 0.74rem;
-      font-family: monospace;
+      display: inline-block; padding: 1px 6px; border-radius: 4px;
+      border: 1px solid #444; background: #222; font-size: .74rem; font-family: monospace;
     }
   </style>
 </head>
@@ -304,6 +291,22 @@
     <div id="player"></div>
   </div>
 
+  <!-- Audio mode artwork panel (hidden in video mode) -->
+  <div id="audio-panel">
+    <div id="audio-thumb-ph">🎵</div>
+    <img id="audio-thumb" alt="thumbnail" style="display:none" />
+    <div class="audio-info">
+      <div id="audio-title">No video loaded</div>
+      <div class="waveform" id="waveform">
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Timeline / progress bar -->
   <div class="progress-section">
     <div class="progress-track" id="progress-track">
@@ -316,9 +319,8 @@
     </div>
   </div>
 
-  <!-- Time inputs + transport buttons -->
+  <!-- Controls -->
   <div class="controls">
-
     <div class="time-group">
       <label>Loop In (A)</label>
       <div class="time-input-row">
@@ -354,6 +356,7 @@
       <button class="ctrl-btn" id="play-pause-btn">▶ Play</button>
       <button class="ctrl-btn active" id="loop-toggle">↺ Loop ON</button>
       <button class="ctrl-btn" id="jump-a-btn">⏮ Jump A</button>
+      <button class="ctrl-btn" id="mode-toggle" title="Toggle audio-only mode">🎵 Audio mode</button>
     </div>
   </div>
 
@@ -363,15 +366,16 @@
     <span id="loop-status">Loop: 0.0 s → 10.0 s &nbsp;|&nbsp; Δ 10.0 s</span>
   </div>
 
-  <!-- Keyboard shortcuts hint -->
+  <!-- Keyboard hints -->
   <div class="hint">
     <kbd>Space</kbd> play/pause &nbsp;
-    <kbd>A</kbd> set loop-in to current time &nbsp;
-    <kbd>B</kbd> set loop-out to current time &nbsp;
+    <kbd>A</kbd> set loop-in &nbsp;
+    <kbd>B</kbd> set loop-out &nbsp;
     <kbd>L</kbd> toggle loop &nbsp;
-    <kbd>J</kbd> jump to loop-in &nbsp;
-    <kbd>←</kbd> / <kbd>→</kbd> seek ±0.1 s &nbsp;
-    <kbd>Shift+←/→</kbd> seek ±1 s
+    <kbd>J</kbd> jump to A &nbsp;
+    <kbd>M</kbd> toggle audio mode &nbsp;
+    <kbd>←</kbd>/<kbd>→</kbd> ±0.1 s &nbsp;
+    <kbd>Shift+←/→</kbd> ±1 s
   </div>
 
 <script>
@@ -382,17 +386,19 @@ var tag = document.createElement('script');
 tag.src = 'https://www.youtube.com/iframe_api';
 document.head.appendChild(tag);
 
-let player = null;
-let duration = 0;
-let loopActive = true;
-let loopIn  = 0;
-let loopOut = 10;
-let polling = null;
-let isDragging = false;
-let dragTarget = null; // 'a' | 'b' | 'seek'
+let player      = null;
+let duration    = 0;
+let loopActive  = true;
+let loopIn      = 0;
+let loopOut     = 10;
+let polling     = null;
+let isDragging  = false;
+let dragTarget  = null;   // 'a' | 'b' | 'seek'
+let audioMode   = false;
+let currentVideoId = '';
 
 /* ─────────────────────────────────────────────
-   Utility helpers
+   Helpers
 ───────────────────────────────────────────── */
 function fmt(s) {
   s = parseFloat(s);
@@ -401,12 +407,11 @@ function fmt(s) {
   s = Math.abs(s);
   const m = Math.floor(s / 60);
   const sec = (s - m * 60).toFixed(1);
-  return m > 0 ? `${sign}${m}:${sec.padStart(4,'0')}` : `${sign}${sec}`;
+  return m > 0 ? `${sign}${m}:${sec.padStart(4, '0')}` : `${sign}${sec}`;
 }
 
 function extractVideoId(raw) {
   raw = raw.trim();
-  // already an ID (11 chars, no slashes)
   if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) return raw;
   try {
     const url = new URL(raw.includes('://') ? raw : 'https://' + raw);
@@ -416,49 +421,38 @@ function extractVideoId(raw) {
 }
 
 /* ─────────────────────────────────────────────
-   IFrame API ready callback
+   IFrame API ready
 ───────────────────────────────────────────── */
-window.onYouTubeIframeAPIReady = function() {
+window.onYouTubeIframeAPIReady = function () {
   player = new YT.Player('player', {
     height: '100%',
-    width:  '100%',
+    width: '100%',
     videoId: '',
     playerVars: {
-      autoplay: 0,
-      controls: 0,       // hide native controls — we build our own
-      rel: 0,
-      modestbranding: 1,
-      iv_load_policy: 3,
-      fs: 0,
-      disablekb: 1,
+      autoplay: 0, controls: 0, rel: 0,
+      modestbranding: 1, iv_load_policy: 3, fs: 0, disablekb: 1,
     },
-    events: {
-      onReady:       onPlayerReady,
-      onStateChange: onStateChange,
-    }
+    events: { onReady: onPlayerReady, onStateChange: onStateChange }
   });
 };
 
-function onPlayerReady() {
-  startPolling();
-}
+function onPlayerReady() { startPolling(); }
 
 function onStateChange(e) {
-  const state = e.data;
-  // YT.PlayerState: -1 UNSTARTED, 0 ENDED, 1 PLAYING, 2 PAUSED, 3 BUFFERING, 5 CUED
-  if (state === YT.PlayerState.PLAYING) {
+  const s = e.data;
+  if (s === YT.PlayerState.PLAYING) {
     duration = player.getDuration() || duration;
     playPauseBtn.textContent = '⏸ Pause';
+    waveformEl.classList.add('playing');
   } else {
     playPauseBtn.textContent = '▶ Play';
+    waveformEl.classList.remove('playing');
   }
-  if (state === YT.PlayerState.ENDED) {
-    if (loopActive) seekTo(loopIn);
-  }
+  if (s === YT.PlayerState.ENDED && loopActive) seekTo(loopIn);
 }
 
 /* ─────────────────────────────────────────────
-   Polling loop – runs every ~100 ms
+   Polling
 ───────────────────────────────────────────── */
 function startPolling() {
   if (polling) clearInterval(polling);
@@ -470,31 +464,28 @@ function tick() {
   const t = player.getCurrentTime();
   duration = player.getDuration() || duration;
   updateProgressUI(t);
-
-  if (loopActive && player.getPlayerState() === YT.PlayerState.PLAYING) {
-    if (t >= loopOut) {
-      seekTo(loopIn);
-    }
+  if (loopActive && player.getPlayerState() === YT.PlayerState.PLAYING && t >= loopOut) {
+    seekTo(loopIn);
   }
 }
 
 function seekTo(t) {
   if (!player) return;
-  t = Math.max(0, Math.min(t, duration || t));
-  player.seekTo(t, true);
+  player.seekTo(Math.max(0, Math.min(t, duration || t)), true);
 }
 
 /* ─────────────────────────────────────────────
-   Progress bar UI updates
+   Progress UI
 ───────────────────────────────────────────── */
-const trackEl     = document.getElementById('progress-track');
-const playedEl    = document.getElementById('track-played');
-const loopRegion  = document.getElementById('loop-region');
-const handleA     = document.getElementById('handle-a');
-const handleB     = document.getElementById('handle-b');
-const playheadEl  = document.getElementById('playhead');
+const trackEl    = document.getElementById('progress-track');
+const playedEl   = document.getElementById('track-played');
+const loopRegion = document.getElementById('loop-region');
+const handleA    = document.getElementById('handle-a');
+const handleB    = document.getElementById('handle-b');
+const playheadEl = document.getElementById('playhead');
 const timeDisplay = document.getElementById('time-display');
 const loopStatus  = document.getElementById('loop-status');
+const waveformEl  = document.getElementById('waveform');
 
 function updateProgressUI(t) {
   if (!duration) return;
@@ -505,8 +496,8 @@ function updateProgressUI(t) {
 
   const aP = loopIn  / duration * 100;
   const bP = loopOut / duration * 100;
-  handleA.style.left  = aP + '%';
-  handleB.style.left  = bP + '%';
+  handleA.style.left = aP + '%';
+  handleB.style.left = bP + '%';
   loopRegion.style.left  = aP + '%';
   loopRegion.style.width = (bP - aP) + '%';
 
@@ -517,24 +508,22 @@ function updateProgressUI(t) {
 function syncHandlesFromInputs() {
   const a = parseFloat(document.getElementById('in-time').value)  || 0;
   const b = parseFloat(document.getElementById('out-time').value) || 0;
-  if (a >= b) return; // invalid
+  if (a >= b) return;
   loopIn  = a;
   loopOut = b;
   updateProgressUI(player ? player.getCurrentTime() : 0);
 }
 
 /* ─────────────────────────────────────────────
-   Dragging handles and seeking on the track
+   Drag / seek on the track
 ───────────────────────────────────────────── */
-function clientXToTime(clientX) {
-  const rect = trackEl.getBoundingClientRect();
-  const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-  return ratio * (duration || 100);
+function clientXToTime(cx) {
+  const r = trackEl.getBoundingClientRect();
+  return Math.max(0, Math.min(1, (cx - r.left) / r.width)) * (duration || 100);
 }
 
 function startDrag(target) {
-  isDragging = true;
-  dragTarget = target;
+  isDragging = true; dragTarget = target;
   document.addEventListener('mousemove', onDragMove);
   document.addEventListener('mouseup',   onDragEnd);
   document.addEventListener('touchmove', onDragMove, { passive: false });
@@ -544,53 +533,74 @@ function startDrag(target) {
 function onDragMove(e) {
   if (!isDragging) return;
   e.preventDefault();
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  const t = clientXToTime(clientX);
-  applyDrag(t);
-}
-
-function applyDrag(t) {
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const t  = clientXToTime(cx);
   if (dragTarget === 'a') {
     loopIn = Math.max(0, Math.min(t, loopOut - 0.1));
     document.getElementById('in-time').value = loopIn.toFixed(1);
   } else if (dragTarget === 'b') {
     loopOut = Math.max(loopIn + 0.1, Math.min(t, duration || 9999));
     document.getElementById('out-time').value = loopOut.toFixed(1);
-  } else if (dragTarget === 'seek') {
+  } else {
     seekTo(t);
   }
   updateProgressUI(player ? player.getCurrentTime() : 0);
 }
 
 function onDragEnd() {
-  isDragging = false;
-  dragTarget = null;
+  isDragging = false; dragTarget = null;
   document.removeEventListener('mousemove', onDragMove);
   document.removeEventListener('mouseup',   onDragEnd);
   document.removeEventListener('touchmove', onDragMove);
   document.removeEventListener('touchend',  onDragEnd);
 }
 
-// Attach drag start to handles
 handleA.addEventListener('mousedown',  e => { e.stopPropagation(); startDrag('a'); });
 handleA.addEventListener('touchstart', e => { e.stopPropagation(); startDrag('a'); }, { passive: true });
 handleB.addEventListener('mousedown',  e => { e.stopPropagation(); startDrag('b'); });
 handleB.addEventListener('touchstart', e => { e.stopPropagation(); startDrag('b'); }, { passive: true });
 
-// Click/drag on the track itself → seek
-trackEl.addEventListener('mousedown', e => {
-  const t = clientXToTime(e.clientX);
-  seekTo(t);
-  startDrag('seek');
-});
+trackEl.addEventListener('mousedown', e => { seekTo(clientXToTime(e.clientX)); startDrag('seek'); });
 trackEl.addEventListener('touchstart', e => {
-  const t = clientXToTime(e.touches[0].clientX);
-  seekTo(t);
-  startDrag('seek');
+  seekTo(clientXToTime(e.touches[0].clientX)); startDrag('seek');
 }, { passive: true });
 
 /* ─────────────────────────────────────────────
-   Control buttons
+   Audio mode toggle
+───────────────────────────────────────────── */
+const playerWrap  = document.getElementById('player-wrap');
+const audioPanel  = document.getElementById('audio-panel');
+const audioThumb  = document.getElementById('audio-thumb');
+const audioThumbPh = document.getElementById('audio-thumb-ph');
+const audioTitle  = document.getElementById('audio-title');
+const modeToggle  = document.getElementById('mode-toggle');
+
+function setAudioMode(on) {
+  audioMode = on;
+  playerWrap.classList.toggle('audio-mode', on);
+  audioPanel.classList.toggle('visible', on);
+  modeToggle.classList.toggle('active2', on);
+  modeToggle.textContent = on ? '📹 Video mode' : '🎵 Audio mode';
+
+  // When switching to audio mode, mute the player's internal volume is NOT what we want —
+  // we want sound. Instead we simply hide the video visually. The iframe keeps running at
+  // 1 px height so the audio stream continues uninterrupted.
+  if (on && currentVideoId) {
+    // Load thumbnail
+    const url = `https://i.ytimg.com/vi/${currentVideoId}/mqdefault.jpg`;
+    audioThumb.src = url;
+    audioThumb.onload = () => { audioThumb.style.display = 'block'; audioThumbPh.style.display = 'none'; };
+    audioThumb.onerror = () => { audioThumb.style.display = 'none'; audioThumbPh.style.display = 'flex'; };
+  } else {
+    audioThumb.style.display = 'none';
+    audioThumbPh.style.display = 'flex';
+  }
+}
+
+modeToggle.addEventListener('click', () => setAudioMode(!audioMode));
+
+/* ─────────────────────────────────────────────
+   Transport buttons
 ───────────────────────────────────────────── */
 const playPauseBtn = document.getElementById('play-pause-btn');
 const loopToggle   = document.getElementById('loop-toggle');
@@ -598,12 +608,8 @@ const jumpABtn     = document.getElementById('jump-a-btn');
 
 playPauseBtn.addEventListener('click', () => {
   if (!player) return;
-  const state = player.getPlayerState();
-  if (state === YT.PlayerState.PLAYING) {
-    player.pauseVideo();
-  } else {
-    player.playVideo();
-  }
+  player.getPlayerState() === YT.PlayerState.PLAYING
+    ? player.pauseVideo() : player.playVideo();
 });
 
 loopToggle.addEventListener('click', () => {
@@ -614,7 +620,6 @@ loopToggle.addEventListener('click', () => {
 
 jumpABtn.addEventListener('click', () => seekTo(loopIn));
 
-/* Set A / Set B buttons */
 document.getElementById('set-a').addEventListener('click', () => {
   if (!player) return;
   const t = parseFloat(player.getCurrentTime().toFixed(1));
@@ -631,11 +636,9 @@ document.getElementById('set-b').addEventListener('click', () => {
   updateProgressUI(t);
 });
 
-/* Typing in number inputs */
-document.getElementById('in-time').addEventListener('change', syncHandlesFromInputs);
+document.getElementById('in-time').addEventListener('change',  syncHandlesFromInputs);
 document.getElementById('out-time').addEventListener('change', syncHandlesFromInputs);
 
-/* Speed */
 document.getElementById('speed-select').addEventListener('change', e => {
   if (player && player.setPlaybackRate) player.setPlaybackRate(parseFloat(e.target.value));
 });
@@ -644,61 +647,49 @@ document.getElementById('speed-select').addEventListener('change', e => {
    Load video
 ───────────────────────────────────────────── */
 document.getElementById('load-btn').addEventListener('click', loadVideo);
-document.getElementById('yt-url').addEventListener('keydown', e => {
-  if (e.key === 'Enter') loadVideo();
-});
+document.getElementById('yt-url').addEventListener('keydown', e => { if (e.key === 'Enter') loadVideo(); });
 
 function loadVideo() {
   const raw = document.getElementById('yt-url').value;
   const vid = extractVideoId(raw);
   if (!vid) { alert('Could not extract a YouTube video ID from that URL.'); return; }
   if (!player || typeof player.loadVideoById !== 'function') {
-    alert('Player not ready yet — please wait a moment and try again.'); return;
+    alert('Player not ready yet — please wait a moment.'); return;
   }
+  currentVideoId = vid;
+  audioTitle.textContent = 'Loading…';
   player.loadVideoById({ videoId: vid, startSeconds: loopIn });
-  duration = 0; // reset until API gives us the real duration
+  duration = 0;
+
+  // Fetch oEmbed for the video title (no API key needed)
+  fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${vid}&format=json`)
+    .then(r => r.json())
+    .then(d => { audioTitle.textContent = d.title || vid; })
+    .catch(() => { audioTitle.textContent = vid; });
+
+  // Refresh thumbnail if already in audio mode
+  if (audioMode) setAudioMode(true);
 }
 
 /* ─────────────────────────────────────────────
    Keyboard shortcuts
 ───────────────────────────────────────────── */
 document.addEventListener('keydown', e => {
-  // ignore if user is typing in an input
-  if (['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)) return;
-
+  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
   switch (e.key) {
-    case ' ':
-    case 'k':
-      e.preventDefault();
-      playPauseBtn.click();
-      break;
-    case 'a':
-    case 'A':
-      document.getElementById('set-a').click();
-      break;
-    case 'b':
-    case 'B':
-      document.getElementById('set-b').click();
-      break;
-    case 'l':
-    case 'L':
-      loopToggle.click();
-      break;
-    case 'j':
-    case 'J':
-      seekTo(loopIn);
-      break;
+    case ' ': case 'k': e.preventDefault(); playPauseBtn.click(); break;
+    case 'a': case 'A': document.getElementById('set-a').click(); break;
+    case 'b': case 'B': document.getElementById('set-b').click(); break;
+    case 'l': case 'L': loopToggle.click(); break;
+    case 'j': case 'J': seekTo(loopIn); break;
+    case 'm': case 'M': setAudioMode(!audioMode); break;
     case 'ArrowLeft': {
       e.preventDefault();
-      const delta = e.shiftKey ? 1 : 0.1;
-      if (player) seekTo(player.getCurrentTime() - delta);
-      break;
+      if (player) seekTo(player.getCurrentTime() - (e.shiftKey ? 1 : 0.1)); break;
     }
     case 'ArrowRight': {
       e.preventDefault();
-      const delta = e.shiftKey ? 1 : 0.1;
-      if (player) seekTo(player.getCurrentTime() + delta);
-      break;
+      if (player) seekTo(player.getCurrentTime() + (e.shiftKey ? 1 : 0.1)); break;
     }
   }
 });
